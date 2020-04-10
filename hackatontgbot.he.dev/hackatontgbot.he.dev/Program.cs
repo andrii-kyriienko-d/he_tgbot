@@ -56,7 +56,7 @@ namespace Telegram.Bot.Examples.Echo
             }
 
 
-            static async Task Usage(Message message)
+            async Task Usage(Message message1)
             {
                 const string usage = "Usage:\n" +
                                         "/inline   - send inline keyboard\n" +
@@ -64,7 +64,7 @@ namespace Telegram.Bot.Examples.Echo
                                         "/photo    - send a photo\n" +
                                         "/request  - request location or contact";
                 await Bot.SendTextMessageAsync(
-                    chatId: message.Chat.Id,
+                    chatId: message1.Chat.Id,
                     text: usage,
                     replyMarkup: new ReplyKeyboardRemove()
                 );
