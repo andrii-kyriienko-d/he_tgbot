@@ -21,6 +21,13 @@ namespace Telegram.Bot.Examples.Echo
         private static SQLiteConnection m_dbConn;
         private static SQLiteCommand m_sqlCmd;
 
+
+        const string usage = "Usage:\n" +
+                                "/inline   - send inline keyboard\n" +
+                                "/keyboard - send custom keyboard\n" +
+                                "/photo    - send a photo\n" +
+                                "/request  - request location or contact";
+
         public static async Task Main()
         {
             Bot = new TelegramBotClient(Configuration.BotToken);
@@ -52,23 +59,34 @@ namespace Telegram.Bot.Examples.Echo
         private static async void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)
         {
             var message = messageEventArgs.Message;
-            if (message == null || message.Type != MessageType.Text)
-                return;
+            Console.WriteLine($"Input message from @{message.From.Username} of type {message.Type.ToString()}:");
 
-            switch (message.Text.Split(' ').First())
+            if (message == null || message.Type != MessageType.Text)
+            {
+                await Reply("Unsupported message type!");
+                return;
+            }
+                
+
+            Console.WriteLine(message.Text);
+
+            string[] args = message.Text.Split(' ');
+
+            switch (args.First())
             {
                 case "/helloworld":
-                    await Usage(message);
+                    await Reply("Hello, World");
                     break;
                 case "/dbcall": //пример /dbcall select * from humans
-                    await dbCall(message);
+                    if(args.Length > 1)
+                        await dbCall(message);
                     break;
                 case "/dbinsert": //пример /dbinsert -F I O -CITY -DD.MM.YYYY -ANY JOB
                     await dbInsert(message);
                     break;
 
                 default:
-                    await Usage(message);
+                    await Reply(usage);
                     break;
             }
             async Task dbInsert(Message msg)
@@ -78,12 +96,12 @@ namespace Telegram.Bot.Examples.Echo
 
                 try
                 {
-                    string args = msg.Text.Remove(0, 9);
+                    string arg = msg.Text.Remove(0, 9);
 
-                    string fio = args.Split('-')[1];
-                    string city = args.Split('-')[2];
-                    string date = args.Split('-')[3];
-                    string job = args.Split('-')[4];
+                    string fio = arg.Split('-')[1];
+                    string city = arg.Split('-')[2];
+                    string date = arg.Split('-')[3];
+                    string job = arg.Split('-')[4];
 
                     m_sqlCmd.Connection = m_dbConn;
                     m_sqlCmd.CommandText = String.Format(@"INSERT INTO Humans(fio,city,date,job) values ('{0}','{1}','{2}','{3}')",fio,city,date,job);
@@ -121,20 +139,14 @@ namespace Telegram.Bot.Examples.Echo
                     Console.WriteLine(ex.Message);
                 }
 
-                await Bot.SendTextMessageAsync(
-                    chatId: msg.Chat.Id,
-                    text: dTable.Rows[0][1].ToString(),
-                    replyMarkup: new ReplyKeyboardRemove()
-                ) ;
+                await Reply(dTable.Rows[0][1].ToString());
             }
 
-            async Task Usage(Message message1)
+            async Task Reply(string text)
             {
-                
-                const string usage = "Usage:\n";
                 await Bot.SendTextMessageAsync(
-                    chatId: message1.Chat.Id,
-                    text: usage,
+                    chatId: message.Chat.Id,
+                    text: text,
                     replyMarkup: new ReplyKeyboardRemove()
                 );
             }
@@ -182,6 +194,7 @@ namespace Telegram.Bot.Examples.Echo
             Console.WriteLine($"Received inline result: {chosenInlineResultEventArgs.ChosenInlineResult.ResultId}");
         }
         #endregion
+
         private static void BotOnReceiveError(object sender, ReceiveErrorEventArgs receiveErrorEventArgs)
         {
             Console.WriteLine("Received error: {0} — {1}",
