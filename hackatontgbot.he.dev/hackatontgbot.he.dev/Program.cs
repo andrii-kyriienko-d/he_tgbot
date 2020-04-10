@@ -18,9 +18,10 @@ namespace Telegram.Bot.Examples.Echo
 
         public static async Task Main()
         {
-
+            Bot = new TelegramBotClient(Configuration.BotToken);
             var me = await Bot.GetMeAsync();
             Console.Title = me.Username;
+        
 
             Bot.OnMessage += BotOnMessageReceived;
             Bot.OnMessageEdited += BotOnMessageReceived;
