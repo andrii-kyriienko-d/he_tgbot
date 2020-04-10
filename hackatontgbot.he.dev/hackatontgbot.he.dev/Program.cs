@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Data;
+using System.Data.SQLite;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -15,13 +17,22 @@ namespace Telegram.Bot.Examples.Echo
     public static class Program
     {
         private static TelegramBotClient Bot;
+        private static String dbFileName;
+        private static SQLiteConnection m_dbConn;
+        private static SQLiteCommand m_sqlCmd;
 
         public static async Task Main()
         {
             Bot = new TelegramBotClient(Configuration.BotToken);
             var me = await Bot.GetMeAsync();
             Console.Title = me.Username;
-        
+
+            //Открываем конехт к бд
+            m_dbConn = new SQLiteConnection();
+            m_sqlCmd = new SQLiteCommand();
+            dbFileName = "humandb.db";
+            m_dbConn = new SQLiteConnection("Data Source=" + dbFileName + ";Version=3;");
+            m_dbConn.Open();
 
             Bot.OnMessage += BotOnMessageReceived;
             Bot.OnMessageEdited += BotOnMessageReceived;
@@ -34,6 +45,7 @@ namespace Telegram.Bot.Examples.Echo
             Console.WriteLine($"Start listening for @{me.Username}");
 
             Console.ReadLine();
+            m_dbConn.Close();
             Bot.StopReceiving();
         }
 
@@ -45,9 +57,11 @@ namespace Telegram.Bot.Examples.Echo
 
             switch (message.Text.Split(' ').First())
             {
-                // Send inline keyboard
                 case "/helloworld":
                     await Usage(message);
+                    break;
+                case "/dbcall": //пример /dbcall select * from humans
+                    await dbCall(message);
                     break;
 
                 default:
@@ -55,9 +69,37 @@ namespace Telegram.Bot.Examples.Echo
                     break;
             }
 
+            async Task dbCall(Message msg)
+            {
+                String sqlQuery = msg.Text.Remove(0,7); //удаляю /dbcall 
+                DataTable dTable = new DataTable();
+
+                if (!System.IO.File.Exists(dbFileName))
+                    SQLiteConnection.CreateFile(dbFileName);
+
+                try
+                {
+
+                    SQLiteDataAdapter adapter = new SQLiteDataAdapter(sqlQuery, m_dbConn);//магия
+                    adapter.Fill(dTable);//магия
+                    Console.WriteLine(dTable.Rows[0][1]); //покажу первый столбец нулевой строки полученого ответа от дб
+
+                }
+                catch (SQLiteException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+
+                await Bot.SendTextMessageAsync(
+                    chatId: msg.Chat.Id,
+                    text: dTable.Rows[0][1].ToString(),
+                    replyMarkup: new ReplyKeyboardRemove()
+                ) ;
+            }
 
             async Task Usage(Message message1)
             {
+                
                 const string usage = "Usage:\n" +
                                         "/inline   - send inline keyboard\n" +
                                         "/keyboard - send custom keyboard\n" +
