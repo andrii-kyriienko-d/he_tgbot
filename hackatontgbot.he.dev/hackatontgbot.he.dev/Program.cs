@@ -86,9 +86,7 @@ namespace Telegram.Bot.Examples.Echo
                 text: $"Received {callbackQuery.Data}"
             );
         }
-
         #region Inline Mode
-
         private static async void BotOnInlineQueryReceived(object sender, InlineQueryEventArgs inlineQueryEventArgs)
         {
             Console.WriteLine($"Received inline query from: {inlineQueryEventArgs.InlineQuery.From.Id}");
@@ -110,14 +108,11 @@ namespace Telegram.Bot.Examples.Echo
                 cacheTime: 0
             );
         }
-
         private static void BotOnChosenInlineResultReceived(object sender, ChosenInlineResultEventArgs chosenInlineResultEventArgs)
         {
             Console.WriteLine($"Received inline result: {chosenInlineResultEventArgs.ChosenInlineResult.ResultId}");
         }
-
         #endregion
-
         private static void BotOnReceiveError(object sender, ReceiveErrorEventArgs receiveErrorEventArgs)
         {
             Console.WriteLine("Received error: {0} — {1}",
