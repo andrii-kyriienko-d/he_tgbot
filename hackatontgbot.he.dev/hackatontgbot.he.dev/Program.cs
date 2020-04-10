@@ -63,12 +63,44 @@ namespace Telegram.Bot.Examples.Echo
                 case "/dbcall": //пример /dbcall select * from humans
                     await dbCall(message);
                     break;
+                case "/dbinsert": //пример /dbinsert -F I O -CITY -DD.MM.YYYY -ANY JOB
+                    await dbInsert(message);
+                    break;
 
                 default:
                     await Usage(message);
                     break;
             }
+            async Task dbInsert(Message msg)
+            {
+                if (!System.IO.File.Exists(dbFileName))
+                    SQLiteConnection.CreateFile(dbFileName);
 
+                try
+                {
+                    string args = msg.Text.Remove(0, 9);
+
+                    string fio = args.Split('-')[1];
+                    string city = args.Split('-')[2];
+                    string date = args.Split('-')[3];
+                    string job = args.Split('-')[4];
+
+                    m_sqlCmd.Connection = m_dbConn;
+                    m_sqlCmd.CommandText = String.Format(@"INSERT INTO Humans(fio,city,date,job) values ('{0}','{1}','{2}','{3}')",fio,city,date,job);
+                    m_sqlCmd.ExecuteNonQuery();
+
+                }
+                catch (SQLiteException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+
+                await Bot.SendTextMessageAsync(
+                    chatId: msg.Chat.Id,
+                    text: "Inserted",
+                    replyMarkup: new ReplyKeyboardRemove()
+                );
+            }
             async Task dbCall(Message msg)
             {
                 String sqlQuery = msg.Text.Remove(0,7); //удаляю /dbcall 
@@ -78,8 +110,7 @@ namespace Telegram.Bot.Examples.Echo
                     SQLiteConnection.CreateFile(dbFileName);
 
                 try
-                {
-
+                { 
                     SQLiteDataAdapter adapter = new SQLiteDataAdapter(sqlQuery, m_dbConn);//магия
                     adapter.Fill(dTable);//магия
                     Console.WriteLine(dTable.Rows[0][1]); //покажу первый столбец нулевой строки полученого ответа от дб
@@ -100,11 +131,7 @@ namespace Telegram.Bot.Examples.Echo
             async Task Usage(Message message1)
             {
                 
-                const string usage = "Usage:\n" +
-                                        "/inline   - send inline keyboard\n" +
-                                        "/keyboard - send custom keyboard\n" +
-                                        "/photo    - send a photo\n" +
-                                        "/request  - request location or contact";
+                const string usage = "Usage:\n";
                 await Bot.SendTextMessageAsync(
                     chatId: message1.Chat.Id,
                     text: usage,
