@@ -1,17 +1,12 @@
 ﻿using RestSharp;
-using Newtonsoft.Json;
 using System;
-using System.IO;
-using Newtonsoft.Json.Linq;
 
 using System.Drawing;
-using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 
 using QuickType;
 
 using System.Linq;
-using System.Collections.Generic;
 using System.Text;
 
 namespace hackatontgbot.he.dev
