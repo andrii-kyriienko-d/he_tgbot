@@ -37,7 +37,13 @@ namespace Telegram.Bot.Examples.Echo
 
         private const string backBtn = "Back";
         private const string ctrlWaitLocation = "Waiting for sending location";
+        private const string cmdGetLocalData = "Get local data";
+        private const string ctrlTypeLocalCity = "Waiting for town name";
+        private const string cmdReportCase = "Report Case";
+        private const string ctrlCityInned = "Waiting for city input";
+        private const string ctrlNameInned = "Waiting for name of the person input";
 
+        private static string cityname = " ";
         private static Dictionary<string, Corona> CountryDictionary = new Dictionary<string, Corona>();
 
         public static async Task<DataTable> getStatusByID(Chat chId)
@@ -66,7 +72,7 @@ namespace Telegram.Bot.Examples.Echo
 
         public static async Task Main()
         {
-            Bot = new TelegramBotClient(Configuration.SecondBotToken);
+            Bot = new TelegramBotClient(Configuration.BotToken);
             var me = await Bot.GetMeAsync();
             Console.Title = me.Username;
 
@@ -105,6 +111,34 @@ namespace Telegram.Bot.Examples.Echo
             {
                 switch (getStatusByID(message.Chat).Result.Rows[0][1])
                 {
+                    case ctrlNameInned:
+                        await addDataToBD(message);
+                        await SendReplyKeyboard(message);
+
+                        ignore = false;
+
+                        break;
+                    case ctrlCityInned:
+                        await sendMessage(message, "Type here name of the person");
+                        await dbInsert(message, ctrlNameInned);
+                        cityname = message.Text;
+                        break;
+                    case cmdReportCase:
+                        await sendMessage(message, "Type here name of your city");
+                        await dbInsert(message, ctrlCityInned);
+                        ignore = true;
+                        break;
+                    case cmdGetLocalData:
+                        await sendMessage(message,"Type here name of your city");
+                        await dbInsert(message, ctrlTypeLocalCity);
+                        ignore = true;
+
+                        break;
+                    case ctrlTypeLocalCity:
+                        await getLocalData(message);
+                        await SendReplyKeyboard(message);
+                        ignore = false;
+                        break;
                     case cmdGetInfoForCountry:
                         await sendMessage(message, "Type Country name, please");
                         await dbInsert(message, ctrlMoveToSecondKeyboard);
@@ -222,7 +256,26 @@ namespace Telegram.Bot.Examples.Echo
             {
 
             }
-
+            async Task addDataToBD(Message msg)
+            {
+                Submissions smb = new Submissions(m_dbConn);
+                smb.add(msg.Text, cityname);
+                await Bot.SendTextMessageAsync(
+                 chatId: msg.Chat.Id,
+                 text: "Person was added",
+                 replyMarkup: new ReplyKeyboardRemove()
+             );
+            }
+            async Task getLocalData(Message msg)
+            {
+                Submissions smb = new Submissions(m_dbConn);
+                
+                await Bot.SendTextMessageAsync(
+                   chatId: msg.Chat.Id,
+                   text: "Count of Infected : " + smb.GetCount(msg.Text).ToString(),
+                   replyMarkup: new ReplyKeyboardRemove()
+               );
+            }
             async Task sendMessage(Message msg, string messg)
             {
                
@@ -319,7 +372,7 @@ namespace Telegram.Bot.Examples.Echo
                 var replyKeyboardMarkup = new ReplyKeyboardMarkup(
                     new KeyboardButton[][]
                     {
-                        new KeyboardButton[] { cmdGetInfoForCountry, cmdGetInfoForCurLocation }
+                        new KeyboardButton[] { cmdGetInfoForCountry, cmdGetInfoForCurLocation, cmdGetLocalData , cmdReportCase}
                     },
                     resizeKeyboard: true
                 );
