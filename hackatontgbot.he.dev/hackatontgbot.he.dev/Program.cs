@@ -213,10 +213,13 @@ namespace Telegram.Bot.Examples.Echo
                                     }
                                     else
                                     {
+                                       ;
                                         await sendMessage(message, result);
                                         await getInforForCountry(message);
                                         await dbInsert(message, ctrlMoveToSecondKeyboard);
-                                        ignore = true;
+                                        Console.WriteLine("Cur = " + CurrentCountry);
+                                        Console.WriteLine("Dict = " + CountryDictionary[CurrentCountry]);
+                                        ignore = false;
                                     }
                                 }
                                 catch (Exception e)
