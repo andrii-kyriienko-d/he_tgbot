@@ -1,5 +1,6 @@
 ﻿using hackatontgbot.he.dev;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
 using System.Drawing;
@@ -29,6 +30,13 @@ namespace Telegram.Bot.Examples.Echo
         private const string cmdTotalActive = "Total & Active cases";
         private const string cmdNewCases = "New cases";
         private const string cmdDeathRec = "Deaths & Recovered";
+
+        private const string ctrlMoveToSecondKeyboard = "Waiting for second keyboard";
+        private static string CurrentCountry = " ";
+        private static bool ignore = false;
+        private const string backBtn = "Back";
+
+        private static Dictionary<string, Corona> CountryDictionary = new Dictionary<string, Corona>();
 
         public static async Task<DataTable> getStatusByID(Chat chId)
         {
@@ -88,79 +96,94 @@ namespace Telegram.Bot.Examples.Echo
             if (message == null || message.Type != MessageType.Text)
                 return;
 
-            switch (message.Text)
-            {
-                case cmdGetInfoForCountry:
-                    await getInforForCountry(message);
-                    break;
-                case cmdGetInfoForCurLocation:
-                    await getLocationInfo(message);
-                    break;
-                case cmdNewCases:
-                    await dbInsert(message, cmdNewCases);
-                    break;
-                case cmdTotalActive:
-                    await dbInsert(message, cmdTotalActive);
-                    break;
-                case cmdDeathRec:
-                    await dbInsert(message, cmdDeathRec);
-                    break;
+            if(!ignore)
+                await dbInsert(message, message.Text);
 
-                default:
-                    Console.WriteLine(message.Text);
-                   
-                    try
-                    {
-                        switch (getStatusByID(message.Chat).Result.Rows[0][1])//смотрим последний статус для этого чата
+            try
+            {
+                switch (getStatusByID(message.Chat).Result.Rows[0][1])
+                {
+                    case cmdGetInfoForCountry:
+                        await sendMessage(message, "Type Country name please");
+                        await dbInsert(message, ctrlMoveToSecondKeyboard);
+                        ignore = true;
+                        break;
+
+                    case ctrlMoveToSecondKeyboard:
+                        string result = "Country collected";
+                        try
                         {
-                           
-                            case cmdNewCases:
-                                Console.WriteLine("New cases request");
-                                await getInfoByCountry(message);
-                                break;
-                            case cmdTotalActive:
-                                Console.WriteLine("Total request");
-                                await getInfoByCountryTotal(message);
-                                break;
-                            case cmdDeathRec:
-                                Console.WriteLine("Death request");
-                                await getInfoByCountryDeaths(message);
-                                break;
-                            default:
-                                await dbInsert(message, cmdGetInfoForCountry);
-                                await SendReplyKeyboard(message);
-                                break;
+                            CurrentCountry = message.Text;
+                            CountryDictionary.Add(message.Text, new Corona(message.Text));
+                            await sendMessage(message, result);
+                            await getInforForCountry(message);
+                            ignore = false;
                         }
-                        
-                    }
-                    catch ( Exception e) {
-                        await dbInsert(message, "user added");
+                        catch (Exception e)
+                        {
+                            await dbInsert(message, "abracadabra");
+                            result = "Something going wrong...";
+                            sendMessage(message, result);
+                            Console.WriteLine(e.Message);
+                        }
+                        break;
+
+                    case cmdGetInfoForCurLocation:
+                        await getLocationInfo(message);
+                        break;
+                    case cmdNewCases:
+                        Console.WriteLine("New cases request");
+                        await getInfoByCountry(message);
+                        break;
+                    case cmdTotalActive:
+                        Console.WriteLine("Total request");
+                        await getInfoByCountryTotal(message);
+                        break;
+                    case cmdDeathRec:
+                        Console.WriteLine("Death request");
+                        await getInfoByCountryDeaths(message);
+                        break;
+                    case backBtn:
+                        ignore = false;
+                        await SendReplyKeyboard(message);
+                        break;
+                    default:
+
                         await SendReplyKeyboard(message);
 
-                    }
-                    break;
+                        break;
+
+                }
+            }
+            catch (Exception e)
+            {
 
             }
+
+            async Task sendMessage(Message msg, string messg)
+            {
                
-
-
+                await Bot.SendTextMessageAsync(
+                   chatId: msg.Chat.Id,
+                   text: messg,
+                   replyMarkup: new ReplyKeyboardRemove()
+               );
+            }
             async Task getLocationInfo(Message msg)
             {
                 await dbInsert(msg, cmdGetInfoForCurLocation);
-
                 await Bot.SendTextMessageAsync(
-                    chatId: "Send your location from phone here :",
-                    text: "Send here location from your phone",
-                    replyMarkup: new ReplyKeyboardRemove()
-                );
+                     chatId: msg.Chat.Id,
+                     text: "Choose",
+                     replyMarkup: new ReplyKeyboardRemove()
+                 );
 
             }
-
             async Task getInfoByCountryDeaths(Message msg)
             {
                 await dbInsert(message, "Country showed");
 
-                Corona corona = new Corona(msg.Text);
+                Corona corona = new Corona(CurrentCountry);
                 Bitmap bmp = corona.generateChart(Corona.ChartType.DEATHS_RECOVERED);
                 MemoryStream memoryStream = new MemoryStream();
                 bmp.Save(memoryStream, ImageFormat.Png);
@@ -177,7 +200,7 @@ namespace Telegram.Bot.Examples.Echo
             {
                 await dbInsert(message, "Country showed");
 
-                Corona corona = new Corona(msg.Text);
+                Corona corona = new Corona(CurrentCountry);
                 Bitmap bmp = corona.generateChart(Corona.ChartType.TOTAL_ACTIVE);
                 MemoryStream memoryStream = new MemoryStream();
                 bmp.Save(memoryStream, ImageFormat.Png);
@@ -194,7 +217,7 @@ namespace Telegram.Bot.Examples.Echo
             {
                 await dbInsert(message, "Country showed");
 
-                Corona corona = new Corona(msg.Text);
+                Corona corona = CountryDictionary[CurrentCountry];
                 Bitmap bmp = corona.generateChart(Corona.ChartType.NEW);
                 MemoryStream memoryStream = new MemoryStream();
                 bmp.Save(memoryStream, ImageFormat.Png);
@@ -207,22 +230,20 @@ namespace Telegram.Bot.Examples.Echo
                 );
 
             }
-
             async Task getInforForCountry(Message msg) // ВОТ СЮДЫ ЛОГИКУ РАБОТЫ С ПОЛУЧЕННЫМИ ДАННЫМИ ДЛЯ СТРАНЫЫЫ
             {
-                await dbInsert(msg,cmdGetInfoForCountry);
-                   
+                
                 var replyKeyboardMarkup = new ReplyKeyboardMarkup(
                                    new KeyboardButton[][]
                                    {
                                         new KeyboardButton[] { cmdNewCases, cmdTotalActive },
-                                        new KeyboardButton[] { cmdDeathRec },
+                                        new KeyboardButton[] { cmdDeathRec, backBtn },
                                    },
                                    resizeKeyboard: true
                                );
 
                 await Bot.SendTextMessageAsync(
-                    chatId: message.Chat.Id,
+                    chatId: msg.Chat.Id,
                     text: "Choose",
                     replyMarkup: replyKeyboardMarkup
                 );
