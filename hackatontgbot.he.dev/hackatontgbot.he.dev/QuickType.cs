@@ -117,4 +117,33 @@ namespace QuickType
 
         public static readonly ParseStringConverter Singleton = new ParseStringConverter();
     }
+
+    public partial class CountryData
+    {
+        [JsonProperty("Country")]
+        public string Country { get; set; }
+
+        [JsonProperty("CountryId")]
+        public string CountryId { get; set; }
+
+        [JsonProperty("City")]
+        public string City { get; set; }
+
+        [JsonProperty("Population")]
+        public long Population { get; set; }
+
+        [JsonProperty("Distance")]
+        public double Distance { get; set; }
+
+        [JsonProperty("Latitude")]
+        public double Latitude { get; set; }
+
+        [JsonProperty("Longitude")]
+        public double Longitude { get; set; }
+    }
+
+    public partial class CountryData
+    {
+        public static CountryData[] FromJson(string json) => JsonConvert.DeserializeObject<CountryData[]>(json, QuickType.Converter.Settings);
+    }
 }

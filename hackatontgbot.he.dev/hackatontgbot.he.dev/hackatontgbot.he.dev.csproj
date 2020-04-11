@@ -66,6 +66,7 @@
   <ItemGroup>
     <Compile Include="Configuration.cs" />
     <Compile Include="Corona.cs" />
+    <Compile Include="CountryReceiver.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QuickType.cs" />
