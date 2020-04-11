@@ -12,6 +12,7 @@ using QuickType;
 
 using System.Linq;
 using System.Collections.Generic;
+using System.Text;
 
 namespace hackatontgbot.he.dev
 {
@@ -202,6 +203,20 @@ namespace hackatontgbot.he.dev
             chart.DrawToBitmap(bmp, chart.ClientRectangle);
 
             return bmp;
+        }
+
+        public string generateInfo()
+        {
+            StringBuilder builder = new StringBuilder("Today's Corona Virus statistics: \n\n");
+            StatByCountry stats = data.StatByCountry.Last();
+            builder
+                .Append("Total Cases: ").Append(getDouble(stats.TotalCases)).AppendLine()
+                .Append("Active Cases: ").Append(getDouble(stats.ActiveCases)).AppendLine()
+                .Append("New Cases: ").Append(getDouble(stats.NewCases)).AppendLine()
+                .Append("Total Deaths: ").Append(getDouble(stats.TotalDeaths)).AppendLine()
+                .Append("Total Recovered: ").Append(getDouble(stats.TotalRecovered)).AppendLine();
+
+            return builder.ToString();
         }
 
         private double getDouble(string val)
