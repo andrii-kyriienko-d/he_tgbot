@@ -96,18 +96,53 @@ namespace hackatontgbot.he.dev
         public Bitmap generateChart(ChartType type) {
             Chart chart = new Chart();
             chart.Size = new Size(1024, 1024);
-            chart.Font = SystemFonts.CaptionFont;
-            chart.BackColor = Color.AliceBlue;
+            Font font = new Font(FontFamily.GenericSansSerif, 15, FontStyle.Bold);
+            chart.Font = font;
 
             ChartArea area = chart.ChartAreas.Add("area");
-            area.BackColor = chart.BackColor;
 
 
             Series s1 = chart.Series.Add("s1");
-            s1.ChartType = SeriesChartType.Line;
+            s1.Font = font;
+            //s1.ChartType = SeriesChartType.Line;
 
             Series s2 = chart.Series.Add("s2");
+            s2.Font = font;
             //s2.ChartType = SeriesChartType.Line;
+
+
+            switch (type)
+            {
+                case ChartType.TOTAL_ACTIVE:
+                    chart.BackColor = Color.AliceBlue;
+                    s1.ChartType = SeriesChartType.Line;
+                    s1.LegendText = "Total Cases";
+                    s2.LegendText = "Active Cases";
+                    break;
+
+                case ChartType.DEATHS_RECOVERED:
+                    chart.BackColor = Color.AntiqueWhite;
+                    s1.LegendText = "Total Deaths";
+                    s2.LegendText = "Total Recovered";
+                    break;
+
+                case ChartType.NEW:
+                    chart.BackColor = Color.Lavender;
+                    s1.LegendText = "New Cases";
+                    break;
+            }
+
+            area.BackColor = chart.BackColor;
+
+
+            Legend legend = new Legend();
+            legend.Font = font;
+            legend.BackColor = chart.BackColor;
+            legend.LegendStyle = LegendStyle.Row;
+            legend.Position.Auto = true;
+            legend.Docking = Docking.Bottom;
+            legend.Alignment = StringAlignment.Center;
+            chart.Legends.Add(legend);
 
 
             foreach (var entry in data.StatByCountry.GroupBy(e => e.RecordDate.Date))
@@ -157,13 +192,17 @@ namespace hackatontgbot.he.dev
                 
             }
 
+            if(type == ChartType.NEW)
+            {
+                chart.Series.Remove(s2);
+            }
+
             Bitmap bmp = new Bitmap(chart.Width, chart.Height);
             //chart.AntiAliasing = AntiAliasingStyles.None;
             chart.DrawToBitmap(bmp, chart.ClientRectangle);
 
             return bmp;
         }
-
 
         private double getDouble(string val)
         {
