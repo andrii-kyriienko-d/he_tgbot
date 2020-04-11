@@ -21,12 +21,36 @@ namespace Telegram.Bot.Examples.Echo
         private static SQLiteConnection m_dbConn;
         private static SQLiteCommand m_sqlCmd;
 
-        private const string cmdGetInfoForCountry = "Получить инфу по названию страны";
+        private const string cmdGetInfoForCountry = "Получить инфу по стране";
 
+
+        public static async Task<DataTable> getStatusByID(Chat chId)
+        {
+            DataTable result = new DataTable();
+
+            String sqlQuery = "select id,status from user_logs where chatId = '" +  chId.Id.ToString() + "' and id = (SELECT MAX(id) FROM user_logs);"; 
+            DataTable dTable = new DataTable();
+
+            if (!System.IO.File.Exists(dbFileName))
+                SQLiteConnection.CreateFile(dbFileName);
+
+            try
+            {
+                SQLiteDataAdapter adapter = new SQLiteDataAdapter(sqlQuery, m_dbConn);//магия
+                adapter.Fill(dTable);//магия
+                result = dTable;
+            }
+            catch (SQLiteException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            return result;
+        }
 
         public static async Task Main()
         {
-            Bot = new TelegramBotClient(Configuration.BotToken);
+            Bot = new TelegramBotClient(Configuration.SecondBotToken);
             var me = await Bot.GetMeAsync();
             Console.Title = me.Username;
 
@@ -58,35 +82,37 @@ namespace Telegram.Bot.Examples.Echo
             if (message == null || message.Type != MessageType.Text)
                 return;
 
-
-            switch (message.Text.Split(' ').First())
+            switch (message.Text)
             {
                 case cmdGetInfoForCountry:
                     await getInforForCountry(message);
                     break;
-                case "/dbcall": //пример /dbcall select * from humans
-                    await dbCall(message);
-                    break;
-                case "/dbinsert": //пример /dbinsert -F I O -CITY -DD.MM.YYYY -ANY JOB
-                    await dbInsert(message);
-                    break;
 
                 default:
-                    await Usage(message);
+                    try
+                    {
+                        switch (getStatusByID(message.Chat).Result.Rows[0][1])//смотрим последний статус для этого чата
+                        {
+                            case cmdGetInfoForCountry:
+                                //TODO counryclass.getinfo (*status update in function need)
+                                Console.WriteLine("Country : " + message.Text);
+                                break;
+                        }
+                    } catch ( Exception e) { }
+                    await SendReplyKeyboard(message);
                     break;
             }
 
-            await SendReplyKeyboard(message);
 
             async Task getInforForCountry(Message msg) // ВОТ СЮДЫ ЛОГИКУ РАБОТЫ С ПОЛУЧЕННЫМИ ДАННЫМИ ДЛЯ СТРАНЫЫЫ
             {
+                await dbInsert(msg,cmdGetInfoForCountry);
 
 
                 await Bot.SendTextMessageAsync(
                    chatId: message.Chat.Id,
-                   text: "Choose",
+                   text: "Type counry name",
                    replyMarkup: new ReplyKeyboardRemove()
-
                );
             }
             async Task SendReplyKeyboard(Message msg)
@@ -104,26 +130,18 @@ namespace Telegram.Bot.Examples.Echo
                     chatId: message.Chat.Id,
                     text: "Choose",
                     replyMarkup: replyKeyboardMarkup
-
                 );
             }
 
-            async Task dbInsert(Message msg)
+            async Task dbInsert(Message msg,string status)
             {
                 if (!System.IO.File.Exists(dbFileName))
                     SQLiteConnection.CreateFile(dbFileName);
 
                 try
                 {
-                    string args = msg.Text.Remove(0, 9);
-
-                    string fio = args.Split('-')[1];
-                    string city = args.Split('-')[2];
-                    string date = args.Split('-')[3];
-                    string job = args.Split('-')[4];
-
                     m_sqlCmd.Connection = m_dbConn;
-                    m_sqlCmd.CommandText = String.Format(@"INSERT INTO Humans(fio,city,date,job) values ('{0}','{1}','{2}','{3}')",fio,city,date,job);
+                    m_sqlCmd.CommandText = String.Format(@"INSERT INTO user_logs(chatid,status,date) values ('{0}','{1}','{2}')",msg.Chat.Id.ToString(),status,DateTime.Now);
                     m_sqlCmd.ExecuteNonQuery();
 
                 }
@@ -137,32 +155,6 @@ namespace Telegram.Bot.Examples.Echo
                     text: "Inserted",
                     replyMarkup: new ReplyKeyboardRemove()
                 );
-            }
-            async Task dbCall(Message msg)
-            {
-                String sqlQuery = msg.Text.Remove(0,7); //удаляю /dbcall 
-                DataTable dTable = new DataTable();
-
-                if (!System.IO.File.Exists(dbFileName))
-                    SQLiteConnection.CreateFile(dbFileName);
-
-                try
-                { 
-                    SQLiteDataAdapter adapter = new SQLiteDataAdapter(sqlQuery, m_dbConn);//магия
-                    adapter.Fill(dTable);//магия
-                    Console.WriteLine(dTable.Rows[0][1]); //покажу первый столбец нулевой строки полученого ответа от дб
-
-                }
-                catch (SQLiteException ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
-
-                await Bot.SendTextMessageAsync(
-                    chatId: msg.Chat.Id,
-                    text: dTable.Rows[0][1].ToString(),
-                    replyMarkup: new ReplyKeyboardRemove()
-                ) ;
             }
             async Task Usage(Message message1)
             {
