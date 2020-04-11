@@ -213,7 +213,7 @@ namespace Telegram.Bot.Examples.Echo
                                     }
                                     else
                                     {
-                                       ;
+                                       
                                         await sendMessage(message, result);
                                         await getInforForCountry(message);
                                         await dbInsert(message, ctrlMoveToSecondKeyboard);
