@@ -43,6 +43,8 @@ namespace Telegram.Bot.Examples.Echo
         private const string ctrlCityInned = "Waiting for city input";
         private const string ctrlNameInned = "Waiting for name of the person input";
 
+        private const string chooseMsg = "Choose...";
+
         private static string cityname = " ";
         private static Dictionary<string, Corona> CountryDictionary = new Dictionary<string, Corona>();
 
@@ -92,6 +94,8 @@ namespace Telegram.Bot.Examples.Echo
 
             Bot.StartReceiving(Array.Empty<UpdateType>());
             Console.WriteLine($"Start listening for @{me.Username}");
+
+            new Push(m_dbConn, Bot);
 
             Console.ReadLine();
             m_dbConn.Close();
@@ -310,7 +314,7 @@ namespace Telegram.Bot.Examples.Echo
                 await Bot.SendPhotoAsync(
                     chatId: message.Chat.Id,
                     photo: file,
-                    caption: "Died&Recovered"
+                    caption: corona.generateInfo()
                 );
 
             }
@@ -327,7 +331,7 @@ namespace Telegram.Bot.Examples.Echo
                 await Bot.SendPhotoAsync(
                     chatId: message.Chat.Id,
                     photo: file,
-                    caption: "Total active"
+                    caption: corona.generateInfo()
                 );
 
             }
@@ -344,7 +348,7 @@ namespace Telegram.Bot.Examples.Echo
                 await Bot.SendPhotoAsync(
                     chatId: message.Chat.Id,
                     photo: file,
-                    caption: "New cases"
+                    caption: corona.generateInfo()
                 );
 
             }
@@ -372,7 +376,8 @@ namespace Telegram.Bot.Examples.Echo
                 var replyKeyboardMarkup = new ReplyKeyboardMarkup(
                     new KeyboardButton[][]
                     {
-                        new KeyboardButton[] { cmdGetInfoForCountry, cmdGetInfoForCurLocation, cmdGetLocalData , cmdReportCase}
+                        new KeyboardButton[] { cmdGetInfoForCountry, cmdGetInfoForCurLocation},
+                        new KeyboardButton[] { cmdGetLocalData , cmdReportCase },
                     },
                     resizeKeyboard: true
                 );
