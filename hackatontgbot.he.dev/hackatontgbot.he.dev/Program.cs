@@ -1,6 +1,9 @@
-﻿using System;
+﻿using hackatontgbot.he.dev;
+using System;
 using System.Data;
 using System.Data.SQLite;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -23,6 +26,7 @@ namespace Telegram.Bot.Examples.Echo
 
         private const string cmdGetInfoForCountry = "Получить инфу по стране";
 
+        private static Corona corona = new Corona("Ukraine");
 
         public static async Task<DataTable> getStatusByID(Chat chId)
         {
@@ -86,6 +90,24 @@ namespace Telegram.Bot.Examples.Echo
             {
                 case cmdGetInfoForCountry:
                     await getInforForCountry(message);
+                    break;
+                case "/chart":
+                    Bitmap bmp = corona.generateChart("new_cases");
+                    MemoryStream memoryStream = new MemoryStream();
+                    bmp.Save(memoryStream, ImageFormat.Png);
+                    memoryStream.Position = 0;
+                    InputOnlineFile file = new InputOnlineFile(memoryStream, "Nice Picture.png");
+                    await Bot.SendPhotoAsync(
+                        chatId: message.Chat.Id,
+                        photo: file,
+                        caption: "Nice Picture"
+                    );
+                    break;
+                case "/dbcall": //пример /dbcall select * from humans
+                    await dbCall(message);
+                    break;
+                case "/dbinsert": //пример /dbinsert -F I O -CITY -DD.MM.YYYY -ANY JOB
+                    await dbInsert(message);
                     break;
 
                 default:
