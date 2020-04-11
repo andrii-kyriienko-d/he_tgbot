@@ -4,7 +4,14 @@ using System;
 using System.IO;
 using Newtonsoft.Json.Linq;
 
+using System.Drawing;
+using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
+
 using QuickType;
+
+using System.Linq;
+using System.Collections.Generic;
 
 namespace hackatontgbot.he.dev
 {
@@ -28,11 +35,39 @@ namespace hackatontgbot.he.dev
                 throw new Exception("Invalid Country Name!");
             }
             Console.WriteLine("Successfully got statistics for country: " + data.Country);
+        }
 
-            foreach(var entry in data.StatByCountry)
+        public Bitmap generateChart(string property)
+        {
+            Chart chart = new Chart();
+            chart.Size = new Size(1024, 1024);
+            ChartArea area = chart.ChartAreas.Add("area");
+            Series series = chart.Series.Add(property);
+            series.ChartType = SeriesChartType.BoxPlot;
+
+            List<string> parts = new List<string>();
+            property.Split('_').ToList().ForEach(x => parts.Add(x.Capitalize()));
+            string label = string.Join(" ", parts);
+
+
+            
+            chart.BackColor = Color.AliceBlue;
+            area.BackColor = chart.BackColor;
+
+            foreach (var entry in data.StatByCountry)
             {
-                Console.WriteLine(entry.RecordDate.ToString());
+                if(entry.NewCases != ""){
+                    double result = double.Parse(entry.NewCases, System.Globalization.NumberStyles.AllowThousands);
+                    series.Points.AddXY(entry.RecordDate.DateTime, result);
+                    Console.Write(result + ", ");
+                }
             }
+
+            Bitmap bmp = new Bitmap(chart.Width, chart.Height);
+            chart.AntiAliasing = AntiAliasingStyles.None;
+            chart.DrawToBitmap(bmp, chart.ClientRectangle);
+
+            return bmp;
         }
     }
 }
