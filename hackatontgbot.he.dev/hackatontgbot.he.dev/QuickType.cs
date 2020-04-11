@@ -43,8 +43,7 @@ namespace QuickType
         public string ActiveCases { get; set; }
 
         [JsonProperty("total_deaths")]
-        [JsonConverter(typeof(ParseStringConverter))]
-        public long TotalDeaths { get; set; }
+        public string TotalDeaths { get; set; }
 
         [JsonProperty("new_deaths")]
         public string NewDeaths { get; set; }

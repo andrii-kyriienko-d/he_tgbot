@@ -41,25 +41,41 @@ namespace hackatontgbot.he.dev
         {
             Chart chart = new Chart();
             chart.Size = new Size(1024, 1024);
-            ChartArea area = chart.ChartAreas.Add("area");
-            Series series = chart.Series.Add(property);
-            series.ChartType = SeriesChartType.BoxPlot;
-
-            List<string> parts = new List<string>();
-            property.Split('_').ToList().ForEach(x => parts.Add(x.Capitalize()));
-            string label = string.Join(" ", parts);
-
-
-            
+            chart.Font = SystemFonts.CaptionFont;
             chart.BackColor = Color.AliceBlue;
+
+            ChartArea area = chart.ChartAreas.Add("area");
             area.BackColor = chart.BackColor;
 
-            foreach (var entry in data.StatByCountry)
+            Series seriesTotal = chart.Series.Add("total_cases");
+            seriesTotal.ChartType = SeriesChartType.Line;
+
+            Series seriesNew = chart.Series.Add("new_cases");
+            seriesTotal.ChartType = SeriesChartType.Line;
+
+            Series seriesActive = chart.Series.Add("active_cases");
+            seriesTotal.ChartType = SeriesChartType.Line;
+
+            Series seriesDeaths = chart.Series.Add("total_deaths");
+            seriesTotal.ChartType = SeriesChartType.Line;
+
+            Series seriesRecovered = chart.Series.Add("total_recovered");
+            seriesTotal.ChartType = SeriesChartType.Line;
+
+
+            foreach (var entry in data.StatByCountry.GroupBy(e => e.RecordDate.Date))
             {
-                if(entry.NewCases != ""){
-                    double result = double.Parse(entry.NewCases, System.Globalization.NumberStyles.AllowThousands);
-                    series.Points.AddXY(entry.RecordDate.DateTime, result);
-                    Console.Write(result + ", ");
+                var data = entry.Last();
+                DateTime date = entry.Key;
+                if (data.TotalCases != ""){
+                    double result = getDouble(data.TotalCases);
+                    seriesTotal.Points.AddXY(date, result);
+                }
+
+                if (data.NewCases != "")
+                {
+                    double result = getDouble(data.NewCases);
+                    seriesNew.Points.AddXY(date, result);
                 }
             }
 
@@ -68,6 +84,99 @@ namespace hackatontgbot.he.dev
             chart.DrawToBitmap(bmp, chart.ClientRectangle);
 
             return bmp;
+        }
+
+        public enum ChartType
+        {
+            TOTAL_ACTIVE,
+            NEW,
+            DEATHS_RECOVERED
+        }
+
+        public Bitmap generateChart(ChartType type) {
+            Chart chart = new Chart();
+            chart.Size = new Size(1024, 1024);
+            chart.Font = SystemFonts.CaptionFont;
+            chart.BackColor = Color.AliceBlue;
+
+            ChartArea area = chart.ChartAreas.Add("area");
+            area.BackColor = chart.BackColor;
+
+
+            Series s1 = chart.Series.Add("s1");
+            s1.ChartType = SeriesChartType.Line;
+
+            Series s2 = chart.Series.Add("s2");
+            //s2.ChartType = SeriesChartType.Line;
+
+
+            foreach (var entry in data.StatByCountry.GroupBy(e => e.RecordDate.Date))
+            {
+                var data = entry.Last();
+                DateTime date = entry.Key;
+
+                switch (type)
+                {
+                    case ChartType.TOTAL_ACTIVE:
+                        if (data.TotalCases.Trim() != "")
+                        {
+                            double result = getDouble(data.TotalCases);
+                            s1.Points.AddXY(date, result);
+                        }
+
+                        if (data.ActiveCases.Trim() != "")
+                        {
+                            double result = getDouble(data.NewCases);
+                            s2.Points.AddXY(date, result);
+                        }
+                        break;
+
+                    case ChartType.NEW:
+                        if (data.NewCases.Trim() != "")
+                        {
+                            double result = getDouble(data.NewCases);
+                            s1.Points.AddXY(date, result);
+                        }
+                        break;
+
+                    case ChartType.DEATHS_RECOVERED:
+
+                        if (data.TotalDeaths.Trim() != "")
+                        {
+                            double result = getDouble(data.TotalDeaths);
+                            s1.Points.AddXY(date, result);
+                        }
+
+                        if (data.TotalRecovered.Trim() != "")
+                        {
+                            double result = getDouble(data.TotalRecovered);
+                            s2.Points.AddXY(date, result);
+                        }
+                        break;
+                }
+                
+            }
+
+            Bitmap bmp = new Bitmap(chart.Width, chart.Height);
+            //chart.AntiAliasing = AntiAliasingStyles.None;
+            chart.DrawToBitmap(bmp, chart.ClientRectangle);
+
+            return bmp;
+        }
+
+
+        private double getDouble(string val)
+        {
+            try
+            {
+                string newval = val.Replace(',', ' ');
+                return double.Parse(newval, System.Globalization.NumberStyles.AllowThousands);
+            }
+            catch
+            {
+                Console.WriteLine("Invalid input: " + val);
+                return 0;
+            }
         }
     }
 }
