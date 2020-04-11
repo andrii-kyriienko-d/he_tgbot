@@ -26,7 +26,7 @@ namespace Telegram.Bot.Examples.Echo
 
         public static async Task Main()
         {
-            Bot = new TelegramBotClient(Configuration.SecondBotToken);
+            Bot = new TelegramBotClient(Configuration.BotToken);
             var me = await Bot.GetMeAsync();
             Console.Title = me.Username;
 
@@ -57,7 +57,7 @@ namespace Telegram.Bot.Examples.Echo
             var message = messageEventArgs.Message;
             if (message == null || message.Type != MessageType.Text)
                 return;
-            
+
 
             switch (message.Text.Split(' ').First())
             {
@@ -107,34 +107,7 @@ namespace Telegram.Bot.Examples.Echo
 
                 );
             }
-            async Task SendInlineKeyboard(Message msg)
-            {
-                await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
 
-                // Simulate longer running task
-                await Task.Delay(500);
-
-                var inlineKeyboard = new InlineKeyboardMarkup(new[]
-                {
-                    // first row
-                    new []
-                    {
-                        InlineKeyboardButton.WithCallbackData("1.1", "11"),
-                        InlineKeyboardButton.WithCallbackData("1.2", "12"),
-                    },
-                    // second row
-                    new []
-                    {
-                        InlineKeyboardButton.WithCallbackData("2.1", "21"),
-                        InlineKeyboardButton.WithCallbackData("2.2", "22"),
-                    }
-                });
-                await Bot.SendTextMessageAsync(
-                    chatId: message.Chat.Id,
-                    text: "Choose",
-                    replyMarkup: inlineKeyboard
-                );
-            }
             async Task dbInsert(Message msg)
             {
                 if (!System.IO.File.Exists(dbFileName))
