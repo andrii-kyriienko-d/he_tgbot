@@ -54,7 +54,7 @@ namespace Telegram.Bot.Examples.Echo
 
         public static async Task Main()
         {
-            Bot = new TelegramBotClient(Configuration.SecondBotToken);
+            Bot = new TelegramBotClient(Configuration.BotToken);
             var me = await Bot.GetMeAsync();
             Console.Title = me.Username;
 
@@ -102,12 +102,6 @@ namespace Telegram.Bot.Examples.Echo
                         photo: file,
                         caption: "Nice Picture"
                     );
-                    break;
-                case "/dbcall": //пример /dbcall select * from humans
-                    await dbCall(message);
-                    break;
-                case "/dbinsert": //пример /dbinsert -F I O -CITY -DD.MM.YYYY -ANY JOB
-                    await dbInsert(message);
                     break;
 
                 default:

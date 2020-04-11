@@ -40,6 +40,7 @@ namespace hackatontgbot.he.dev
         public Bitmap generateChart(string property)
         {
             Chart chart = new Chart();
+            chart.Size = new Size(1024, 1024);
             ChartArea area = chart.ChartAreas.Add("area");
             Series series = chart.Series.Add(property);
             series.ChartType = SeriesChartType.BoxPlot;
