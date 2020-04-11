@@ -34,7 +34,9 @@ namespace Telegram.Bot.Examples.Echo
         private const string ctrlMoveToSecondKeyboard = "Waiting for second keyboard";
         private static string CurrentCountry = " ";
         private static bool ignore = false;
+
         private const string backBtn = "Back";
+        private const string ctrlWaitLocation = "Waiting for sending location";
 
         private static Dictionary<string, Corona> CountryDictionary = new Dictionary<string, Corona>();
 
@@ -93,7 +95,7 @@ namespace Telegram.Bot.Examples.Echo
         private static async void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)
         {
             var message = messageEventArgs.Message;
-            if (message == null || message.Type != MessageType.Text)
+            if (message == null)
                 return;
 
             if(!ignore)
@@ -104,33 +106,95 @@ namespace Telegram.Bot.Examples.Echo
                 switch (getStatusByID(message.Chat).Result.Rows[0][1])
                 {
                     case cmdGetInfoForCountry:
-                        await sendMessage(message, "Type Country name please");
+                        await sendMessage(message, "Type Country name, please");
                         await dbInsert(message, ctrlMoveToSecondKeyboard);
                         ignore = true;
                         break;
 
                     case ctrlMoveToSecondKeyboard:
-                        string result = "Country collected";
+                        string result = "Country selected";
                         try
                         {
-                            CurrentCountry = message.Text;
-                            CountryDictionary.Add(message.Text, new Corona(message.Text));
-                            await sendMessage(message, result);
-                            await getInforForCountry(message);
-                            ignore = false;
+
+                            if (!CountryDictionary.ContainsKey(message.Text))
+                            {
+                                CurrentCountry = message.Text;
+                                CountryDictionary.Add(message.Text, new Corona(message.Text));
+                                await sendMessage(message, result);
+                                await getInforForCountry(message);
+                                await dbInsert(message, ctrlMoveToSecondKeyboard);
+                                Console.WriteLine("Cur = " + CurrentCountry);
+                                Console.WriteLine("Dict = " + CountryDictionary[CurrentCountry]);
+                                ignore = false;
+                            }
+                            else
+                            {
+                                CurrentCountry = message.Text;
+                                await sendMessage(message, result);
+                                await getInforForCountry(message);
+                                await dbInsert(message, ctrlMoveToSecondKeyboard);
+                                Console.WriteLine("Cur = " + CurrentCountry);
+                                Console.WriteLine("Dict = " + CountryDictionary[CurrentCountry]);
+                                ignore = false;
+                            }
                         }
                         catch (Exception e)
                         {
                             await dbInsert(message, "abracadabra");
-                            result = "Something going wrong...";
+                            result = "Something went wrong...";
                             sendMessage(message, result);
+                            await sendMessage(message, "Type Country name, please");
+                            await dbInsert(message, ctrlMoveToSecondKeyboard);
+                            Console.WriteLine("Cur = " + CurrentCountry);
+                            Console.WriteLine("Dict = " + CountryDictionary[CurrentCountry]);
+                            ignore = false;
                             Console.WriteLine(e.Message);
                         }
                         break;
 
                     case cmdGetInfoForCurLocation:
-                        await getLocationInfo(message);
+                        await sendMessage(message, "Send location from your phone, please");
+                        await dbInsert(message, ctrlWaitLocation);
+                        ignore = true;
                         break;
+
+                    case ctrlWaitLocation:
+                        if(message.Type == MessageType.Location)
+                        {
+                             await getLocationInfo(message);
+                             result = "Country selected";
+
+                                try
+                                {
+                                    if (!CountryDictionary.ContainsKey(CurrentCountry))
+                                    {
+                                        CountryDictionary.Add(CurrentCountry, new Corona(CurrentCountry));
+                                        await sendMessage(message, result);
+                                        await getInforForCountry(message);
+                                        ignore = false;
+                                    }
+                                    else
+                                    {
+                                        await sendMessage(message, result);
+                                        await getInforForCountry(message);
+                                        await dbInsert(message, ctrlMoveToSecondKeyboard);
+                                        ignore = true;
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    await dbInsert(message, "abracadabra");
+                                    result = "Something went wrong...";
+                                    sendMessage(message, result);
+                                    Console.WriteLine(e.Message);
+                                    await sendMessage(message, "Type Country name, please");
+                                    await dbInsert(message, ctrlMoveToSecondKeyboard);
+                                    ignore = true;
+                                }
+                        }
+                       
+                        break;
+
                     case cmdNewCases:
                         Console.WriteLine("New cases request");
                         await getInfoByCountry(message);
@@ -150,7 +214,6 @@ namespace Telegram.Bot.Examples.Echo
                     default:
 
                         await SendReplyKeyboard(message);
-
                         break;
 
                 }
@@ -171,10 +234,12 @@ namespace Telegram.Bot.Examples.Echo
             }
             async Task getLocationInfo(Message msg)
             {
-                await dbInsert(msg, cmdGetInfoForCurLocation);
+                CountryReceiver cr = new CountryReceiver();
+                CurrentCountry = cr.getCountryName(msg.Location.Latitude, msg.Location.Longitude);
+
                 await Bot.SendTextMessageAsync(
                      chatId: msg.Chat.Id,
-                     text: "Choose",
+                     text: "You are in " + cr.getCountryName(msg.Location.Latitude, msg.Location.Longitude),
                      replyMarkup: new ReplyKeyboardRemove()
                  );
 
