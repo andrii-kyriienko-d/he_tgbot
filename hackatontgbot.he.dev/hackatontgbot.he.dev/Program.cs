@@ -116,9 +116,9 @@ namespace Telegram.Bot.Examples.Echo
                 switch (getStatusByID(message.Chat).Result.Rows[0][1])
                 {
                     case ctrlNameInned:
+                        await dbInsert(message, "abrakadabra");
                         await addDataToBD(message);
                         await SendReplyKeyboard(message);
-
                         ignore = false;
 
                         break;
@@ -127,11 +127,13 @@ namespace Telegram.Bot.Examples.Echo
                         await dbInsert(message, ctrlNameInned);
                         cityname = message.Text;
                         break;
+
                     case cmdReportCase:
                         await sendMessage(message, "Type here name of your city");
                         await dbInsert(message, ctrlCityInned);
                         ignore = true;
                         break;
+
                     case cmdGetLocalData:
                         await sendMessage(message,"Type here name of your city");
                         await dbInsert(message, ctrlTypeLocalCity);
