@@ -24,10 +24,11 @@ namespace Telegram.Bot.Examples.Echo
         private static SQLiteConnection m_dbConn;
         private static SQLiteCommand m_sqlCmd;
 
-        private const string cmdGetInfoForCountry = "Получить инфу по стране";
-        private const string cmdGetInfoForCurLocation = "Получить инфу по текущей локации";
-
-        private static Corona corona = new Corona("Ukraine");
+        private const string cmdGetInfoForCountry = "Get info by country name";
+        private const string cmdGetInfoForCurLocation = "Get info by current location";
+        private const string cmdTotalActive = "Total & Active cases";
+        private const string cmdNewCases = "New cases";
+        private const string cmdDeathRec = "Deaths & Recovered";
 
         public static async Task<DataTable> getStatusByID(Chat chId)
         {
@@ -95,35 +96,53 @@ namespace Telegram.Bot.Examples.Echo
                 case cmdGetInfoForCurLocation:
                     await getLocationInfo(message);
                     break;
-                case "/chart":
-                    Bitmap bmp = corona.generateChart("new_cases");
-                    MemoryStream memoryStream = new MemoryStream();
-                    bmp.Save(memoryStream, ImageFormat.Png);
-                    memoryStream.Position = 0;
-                    InputOnlineFile file = new InputOnlineFile(memoryStream, "Nice Picture.png");
-                    await Bot.SendPhotoAsync(
-                        chatId: message.Chat.Id,
-                        photo: file,
-                        caption: "Nice Picture"
-                    );
+                case cmdNewCases:
+                    await dbInsert(message, cmdNewCases);
+                    break;
+                case cmdTotalActive:
+                    await dbInsert(message, cmdTotalActive);
+                    break;
+                case cmdDeathRec:
+                    await dbInsert(message, cmdDeathRec);
                     break;
 
                 default:
+                    Console.WriteLine(message.Text);
+                   
                     try
                     {
                         switch (getStatusByID(message.Chat).Result.Rows[0][1])//смотрим последний статус для этого чата
                         {
-                            case cmdGetInfoForCountry:
-                                //TODO counryclass.getinfo (*status update in function need)
-                                Console.WriteLine("Country : " + message.Text);
-                                await dbInsert(message, "Counry typed");
-
+                           
+                            case cmdNewCases:
+                                Console.WriteLine("New cases request");
+                                await getInfoByCountry(message);
+                                break;
+                            case cmdTotalActive:
+                                Console.WriteLine("Total request");
+                                await getInfoByCountryTotal(message);
+                                break;
+                            case cmdDeathRec:
+                                Console.WriteLine("Death request");
+                                await getInfoByCountryDeaths(message);
+                                break;
+                            default:
+                                await dbInsert(message, cmdGetInfoForCountry);
+                                await SendReplyKeyboard(message);
                                 break;
                         }
-                    } catch ( Exception e) { }
-                    await SendReplyKeyboard(message);
+                        
+                    }
+                    catch ( Exception e) {
+                        await dbInsert(message, "user added");
+                        await SendReplyKeyboard(message);
+
+                    }
                     break;
+
             }
+               
+
 
             async Task getLocationInfo(Message msg)
             {
@@ -136,24 +155,85 @@ namespace Telegram.Bot.Examples.Echo
                 );
 
             }
+
+            async Task getInfoByCountryDeaths(Message msg)
+            {
+                await dbInsert(message, "Country showed");
+
+                Corona corona = new Corona(msg.Text);
+                Bitmap bmp = corona.generateChart(Corona.ChartType.DEATHS_RECOVERED);
+                MemoryStream memoryStream = new MemoryStream();
+                bmp.Save(memoryStream, ImageFormat.Png);
+                memoryStream.Position = 0;
+                InputOnlineFile file = new InputOnlineFile(memoryStream, "Nice Picture.png");
+                await Bot.SendPhotoAsync(
+                    chatId: message.Chat.Id,
+                    photo: file,
+                    caption: "Died&Recovered"
+                );
+
+            }
+            async Task getInfoByCountryTotal(Message msg)
+            {
+                await dbInsert(message, "Country showed");
+
+                Corona corona = new Corona(msg.Text);
+                Bitmap bmp = corona.generateChart(Corona.ChartType.TOTAL_ACTIVE);
+                MemoryStream memoryStream = new MemoryStream();
+                bmp.Save(memoryStream, ImageFormat.Png);
+                memoryStream.Position = 0;
+                InputOnlineFile file = new InputOnlineFile(memoryStream, "Nice Picture.png");
+                await Bot.SendPhotoAsync(
+                    chatId: message.Chat.Id,
+                    photo: file,
+                    caption: "Total active"
+                );
+
+            }
+            async Task getInfoByCountry(Message msg)
+            {
+                await dbInsert(message, "Country showed");
+
+                Corona corona = new Corona(msg.Text);
+                Bitmap bmp = corona.generateChart(Corona.ChartType.NEW);
+                MemoryStream memoryStream = new MemoryStream();
+                bmp.Save(memoryStream, ImageFormat.Png);
+                memoryStream.Position = 0;
+                InputOnlineFile file = new InputOnlineFile(memoryStream, "Nice Picture.png");
+                await Bot.SendPhotoAsync(
+                    chatId: message.Chat.Id,
+                    photo: file,
+                    caption: "New cases"
+                );
+
+            }
+
             async Task getInforForCountry(Message msg) // ВОТ СЮДЫ ЛОГИКУ РАБОТЫ С ПОЛУЧЕННЫМИ ДАННЫМИ ДЛЯ СТРАНЫЫЫ
             {
                 await dbInsert(msg,cmdGetInfoForCountry);
-
+                   
+                var replyKeyboardMarkup = new ReplyKeyboardMarkup(
+                                   new KeyboardButton[][]
+                                   {
+                                        new KeyboardButton[] { cmdNewCases, cmdTotalActive },
+                                        new KeyboardButton[] { cmdDeathRec },
+                                   },
+                                   resizeKeyboard: true
+                               );
 
                 await Bot.SendTextMessageAsync(
-                   chatId: message.Chat.Id,
-                   text: "Type counry name",
-                   replyMarkup: new ReplyKeyboardRemove()
-               );
+                    chatId: message.Chat.Id,
+                    text: "Choose",
+                    replyMarkup: replyKeyboardMarkup
+                );
             }
+
             async Task SendReplyKeyboard(Message msg)
             {
                 var replyKeyboardMarkup = new ReplyKeyboardMarkup(
                     new KeyboardButton[][]
                     {
-                        new KeyboardButton[] { cmdGetInfoForCountry, cmdGetInfoForCurLocation },
-                        new KeyboardButton[] { "2.1", "2.2" },
+                        new KeyboardButton[] { cmdGetInfoForCountry, cmdGetInfoForCurLocation }
                     },
                     resizeKeyboard: true
                 );
@@ -181,12 +261,6 @@ namespace Telegram.Bot.Examples.Echo
                 {
                     Console.WriteLine(ex.Message);
                 }
-
-                await Bot.SendTextMessageAsync(
-                    chatId: msg.Chat.Id,
-                    text: "Inserted",
-                    replyMarkup: new ReplyKeyboardRemove()
-                );
             }
             async Task Usage(Message message1)
             {
