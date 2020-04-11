@@ -22,6 +22,7 @@ namespace Telegram.Bot.Examples.Echo
         private static SQLiteCommand m_sqlCmd;
 
         private const string cmdGetInfoForCountry = "Получить инфу по стране";
+        private const string cmdGetInfoForCurLocation = "Получить инфу по текущей локации";
 
 
         public static async Task<DataTable> getStatusByID(Chat chId)
@@ -87,7 +88,9 @@ namespace Telegram.Bot.Examples.Echo
                 case cmdGetInfoForCountry:
                     await getInforForCountry(message);
                     break;
-
+                case cmdGetInfoForCurLocation:
+                    await getLocationInfo(message);
+                    break;
                 default:
                     try
                     {
@@ -96,6 +99,8 @@ namespace Telegram.Bot.Examples.Echo
                             case cmdGetInfoForCountry:
                                 //TODO counryclass.getinfo (*status update in function need)
                                 Console.WriteLine("Country : " + message.Text);
+                                await dbInsert(message, "Counry typed");
+
                                 break;
                         }
                     } catch ( Exception e) { }
@@ -103,7 +108,17 @@ namespace Telegram.Bot.Examples.Echo
                     break;
             }
 
+            async Task getLocationInfo(Message msg)
+            {
+                await dbInsert(msg, cmdGetInfoForCurLocation);
 
+                await Bot.SendTextMessageAsync(
+                    chatId: "Send your location from phone here :",
+                    text: "Send here location from your phone",
+                    replyMarkup: new ReplyKeyboardRemove()
+                );
+
+            }
             async Task getInforForCountry(Message msg) // ВОТ СЮДЫ ЛОГИКУ РАБОТЫ С ПОЛУЧЕННЫМИ ДАННЫМИ ДЛЯ СТРАНЫЫЫ
             {
                 await dbInsert(msg,cmdGetInfoForCountry);
@@ -120,7 +135,7 @@ namespace Telegram.Bot.Examples.Echo
                 var replyKeyboardMarkup = new ReplyKeyboardMarkup(
                     new KeyboardButton[][]
                     {
-                        new KeyboardButton[] { cmdGetInfoForCountry, "1.2" },
+                        new KeyboardButton[] { cmdGetInfoForCountry, cmdGetInfoForCurLocation },
                         new KeyboardButton[] { "2.1", "2.2" },
                     },
                     resizeKeyboard: true
