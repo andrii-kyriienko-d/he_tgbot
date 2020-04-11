@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace hackatontgbot.he.dev
 {
@@ -19,7 +15,7 @@ namespace hackatontgbot.he.dev
 
         public void add(string name, string city)
         {
-            long cityId = getCity(city);
+            long cityId = GetCity(city);
             try
             {
                 SQLiteCommand command = new SQLiteCommand("INSERT INTO submissions (name, city) VALUES (@name, @city)", connection);
@@ -33,7 +29,7 @@ namespace hackatontgbot.he.dev
             }
         }
 
-        private long getCity(string name)
+        private long GetCity(string name)
         {
             try
             {
@@ -49,6 +45,27 @@ namespace hackatontgbot.he.dev
                 adapter.Fill(dTable);
 
                 return (Int64) dTable.Rows[0][0];
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+            return 0;
+        }
+
+        public long GetCount(string name)
+        {
+            try
+            {
+                SQLiteCommand command = new SQLiteCommand("SELECT COUNT(submissions.id) FROM submissions INNER JOIN cities ON submissions.city = cities.id WHERE cities.name = @name", connection);
+                command.Parameters.AddWithValue("name", name);
+
+                SQLiteDataAdapter adapter = new SQLiteDataAdapter(command);
+                DataTable dTable = new DataTable();
+                adapter.Fill(dTable);
+
+                return (Int64)dTable.Rows[0][0];
 
             }
             catch (Exception e)
