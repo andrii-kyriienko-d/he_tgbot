@@ -253,7 +253,11 @@ namespace Telegram.Bot.Examples.Echo
                         await SendReplyKeyboard(message);
                         break;
                     default:
-
+                        await Bot.SendTextMessageAsync(
+                             chatId: message.Chat.Id,
+                             text: "Invalid command! Use buttons to work with bot",
+                             replyMarkup: new ReplyKeyboardRemove()
+                         );
                         await SendReplyKeyboard(message);
                         break;
 
